@@ -2,7 +2,7 @@
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
-    .register('/service-worker.js')  // Asegúrate de que la ruta sea la correcta
+    .register('./service-worker.js')  // Asegúrate de que la ruta sea la correcta
     .then((registration) => {
       console.log('Service Worker registrado correctamente', registration);
     })
