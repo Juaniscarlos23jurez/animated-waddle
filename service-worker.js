@@ -1,37 +1,22 @@
-// service-worker.js
+// service-worker.js sin Workbox
 
-if (workbox) {
-  console.log('Workbox está cargado');
-  
-  // Cache de los archivos estáticos, por ejemplo, imágenes, CSS y JS
-  workbox.routing.registerRoute(
-    ({ request }) => request.destination === 'image',
-    new workbox.strategies.CacheFirst({
-      cacheName: 'images-cache',
-      plugins: [
-        new workbox.expiration.Plugin({
-          maxEntries: 10,
-          maxAgeSeconds: 24 * 60 * 60, // 1 día
-        }),
-      ],
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open('static-cache').then((cache) => {
+      return cache.addAll([
+        '/',
+        '/index.html',
+        '/style.css',
+        '/app.js',
+      ]);
     })
   );
+});
 
-  workbox.routing.registerRoute(
-    ({ request }) =>
-      request.destination === 'script' || request.destination === 'style',
-    new workbox.strategies.StaleWhileRevalidate({
-      cacheName: 'static-resources-cache',
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      return cachedResponse || fetch(event.request);
     })
   );
-
-  // Para HTML y otros recursos estáticos
-  workbox.routing.registerRoute(
-    ({ url }) => url.origin === self.location.origin,
-    new workbox.strategies.CacheFirst({
-      cacheName: 'html-cache',
-    })
-  );
-} else {
-  console.log('Workbox no está disponible');
-}
+});
