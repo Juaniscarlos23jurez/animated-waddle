@@ -6,6 +6,8 @@ self.addEventListener('install', (event) => {
       return cache.addAll([
         '/',
         '/index.html',
+  '/clientes.html',
+  '/gastos.html',
         '/style.css',
         '/app.js',
       ]);
@@ -16,10 +18,24 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
+      return (
+        cachedResponse ||
+        fetch(event.request)
+          .then((networkResponse) => {
+            return caches.open('dynamic-cache').then((cache) => {
+              cache.put(event.request, networkResponse.clone());
+              return networkResponse;
+            });
+          })
+          .catch(() => {
+            // Devuelve una respuesta predeterminada en caso de no encontrar nada
+            return caches.match('/offline.html'); // Asegúrate de incluir offline.html en tu caché inicial
+          })
+      );
     })
   );
 });
+
 // Asegúrate de que Workbox esté disponible
 if (typeof workbox !== 'undefined') {
   console.log('Workbox está disponible.');

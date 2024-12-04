@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Clientes</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="manifest" href="manifest.json">
+
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="/index.html">Catálogo</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item active">
+          <a class="nav-link" href="/gastos.html">Gastos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/clientes.html">Clientes</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <h2 class="text-center">Registro de Clientes</h2>
+    <form id="formRegistroCliente">
+      <div class="form-group">
+        <label for="nombre">Nombre</label>
+        <input
+          type="text"
+          class="form-control"
+          id="nombre"
+          name="nombre"
+          placeholder="Ingrese el nombre del cliente"
+          required
+        >
+      </div>
+      <div class="form-group">
+        <label for="telefono">Teléfono</label>
+        <input
+          type="tel"
+          class="form-control"
+          id="telefono"
+          name="telefono"
+          placeholder="Ingrese el teléfono del cliente"
+          required
+          pattern="^\d{10}$"
+          title="El número de teléfono debe tener 10 dígitos"
+        >
+      </div>
+      <div class="form-group">
+        <label for="direccion">Dirección</label>
+        <textarea
+          class="form-control"
+          id="direccion"
+          name="direccion"
+          rows="2"
+          placeholder="Ingrese la dirección del cliente"
+          required
+        ></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Registrar Cliente</button>
+    </form>
+
+    <h3 class="text-center mt-5">Lista de Clientes Registrados</h3>
+    <table class="table table-striped mt-3" id="listaClientes">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Dirección</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Aquí se agregarán los clientes dinámicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Firebase JS SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwDrPiehFMHQ9yYKRcKkWor02EijUp5gI",
+      authDomain: "sisye-50760.firebaseapp.com",
+      databaseURL: "https://sisye-50760-default-rtdb.firebaseio.com",
+      projectId: "sisye-50760",
+      storageBucket: "sisye-50760.appspot.com",
+      messagingSenderId: "654720267764",
+      appId: "1:654720267764:web:4d9f302012a49dcc3bf5a1",
+      measurementId: "G-6RCT8Z9FTZ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const clientesRef = database.ref("/Empresas/Cliente");
+
+    const form = document.getElementById('formRegistroCliente');
+    const listaClientes = document.getElementById('listaClientes').querySelector('tbody');
+
+    // Cargar clientes desde Firebase
+    const cargarClientesDesdeFirebase = () => {
+      clientesRef.once('value', (snapshot) => {
+        const firebaseClientes = snapshot.val() || {};
+        const firebaseClientesArray = Object.values(firebaseClientes);
+        const clientesLocales = JSON.parse(localStorage.getItem('clientes')) || [];
+        const todosLosClientes = [...clientesLocales, ...firebaseClientesArray];
+        actualizarTabla(todosLosClientes);
+      });
+    };
+
+    // Guardar cliente en localStorage
+    const guardarClienteEnLocal = (cliente) => {
+      const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+      clientes.push(cliente);
+      localStorage.setItem('clientes', JSON.stringify(clientes));
+    };
+
+    // Enviar clientes pendientes a Firebase
+    const enviarClientesPendientes = () => {
+      const clientes = JSON.parse(localStorage.getItem('clientes')) || [];
+      if (clientes.length > 0) {
+        clientes.forEach((cliente, index) => {
+          clientesRef.push(cliente, (error) => {
+            if (!error) {
+              clientes.splice(index, 1); // Eliminar cliente enviado
+              localStorage.setItem('clientes', JSON.stringify(clientes));
+            }
+          });
+        });
+      }
+    };
+
+    // Actualizar tabla de clientes
+    const actualizarTabla = (clientes) => {
+      listaClientes.innerHTML = '';
+      clientes.forEach((cliente, index) => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${cliente.nombre}</td>
+          <td>${cliente.telefono}</td>
+          <td>${cliente.direccion}</td>
+        `;
+        listaClientes.appendChild(fila);
+      });
+    };
+
+    // Registrar cliente
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById('nombre').value;
+      const telefono = document.getElementById('telefono').value;
+      const direccion = document.getElementById('direccion').value;
+
+      const nuevoCliente = { nombre, telefono, direccion };
+      guardarClienteEnLocal(nuevoCliente);
+      actualizarTabla(JSON.parse(localStorage.getItem('clientes')) || []);
+      form.reset();
+
+      if (navigator.onLine) {
+        enviarClientesPendientes();
+      } else {
+        alert('Estás offline. El cliente será registrado cuando se restablezca la conexión.');
+      }
+    });
+
+    // Escuchar conexión a internet
+    window.addEventListener('online', () => {
+      alert('Conexión restablecida. Enviando clientes pendientes a Firebase...');
+      enviarClientesPendientes();
+    });
+
+    // Inicializar
+    cargarClientesDesdeFirebase();
+  </script>
+      <script  src="app.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.min.js"></script>
+</body>
+</html>

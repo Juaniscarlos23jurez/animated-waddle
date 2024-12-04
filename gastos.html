@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gastos</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1050;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      max-width: 500px;
+      width: 100%;
+    }
+    .modal.show {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/index.html">Catálogo</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav">
+            <li class="nav-item active">
+              <a class="nav-link" href="/gastos.html">Gastos</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/clientes.html">Clientes</a>
+            </li>
+            
+          </ul>
+        </div>
+      </nav>
+      
+  <div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1>Gastos</h1>
+      <button class="btn btn-primary" id="openModal">Nuevo Gasto</button>
+    </div>
+
+    <h2 class="text-center">Registro de Gastos</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Cantidad</th>
+              <th>Nota</th>
+              <th>Fecha</th>
+              <th>Frecuencia</th>
+              <th>Tipo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="gastosTable">
+            <!-- Los datos de los gastos se cargarán dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+      
+    <!-- Modal para el formulario -->
+    <div class="modal" id="modal">
+      <div class="modal-content">
+        <h3>Agregar Gasto</h3>
+        <form id="gastosForm">
+          <div class="form-group">
+            <label for="concepto">Concepto</label>
+            <input type="text" id="concepto" name="concepto" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="cantidad">Cantidad</label>
+            <input type="number" id="cantidad" name="cantidad" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota</label>
+            <input type="text" id="nota" name="nota" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="fecha">Fecha</label>
+            <input type="date" id="fecha" name="fecha" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="frecuencia">Frecuencia</label>
+            <select id="frecuencia" name="frecuencia" class="form-control" required>
+              <option value="" disabled selected>Selecciona una frecuencia</option>
+              <option value="Unico">Único</option>
+              <option value="Semanal">Semanal</option>
+              <option value="Mensual">Mensual</option>
+              <option value="Bimestral">Bimestral</option>
+              <option value="Semestral">Semestral</option>
+              <option value="Anual">Anual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" name="tipo" class="form-control" required>
+              <option value="" disabled selected>Selecciona un tipo</option>
+              <option value="Costos Fijos">Costos Fijos</option>
+              <option value="Costos Variables">Costos Variables</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary" id="closeModal">Cancelar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwDrPiehFMHQ9yYKRcKkWor02EijUp5gI",
+      authDomain: "sisye-50760.firebaseapp.com",
+      databaseURL: "https://sisye-50760-default-rtdb.firebaseio.com",
+      projectId: "sisye-50760",
+      storageBucket: "sisye-50760.appspot.com",
+      messagingSenderId: "654720267764",
+      appId: "1:654720267764:web:4d9f302012a49dcc3bf5a1",
+      measurementId: "G-6RCT8Z9FTZ"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    const openModalButton = document.getElementById('openModal');
+    const closeModalButton = document.getElementById('closeModal');
+    const modal = document.getElementById('modal');
+    const gastosTable = document.getElementById('gastosTable');
+    const gastosForm = document.getElementById('gastosForm');
+
+    const renderGastos = (gastos) => {
+      gastosTable.innerHTML = '';
+      gastos.forEach((gasto, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${gasto.concepto}</td>
+          <td>${gasto.cantidad}</td>
+          <td>${gasto.nota}</td>
+          <td>${gasto.fecha}</td>
+          <td>${gasto.frecuencia}</td>
+          <td>${gasto.tipo}</td>
+          <td>
+            <button class="btn btn-danger" onclick="deleteGasto('${gasto.id}')">Eliminar</button>
+          </td>
+        `;
+        gastosTable.appendChild(row);
+      });
+    };
+
+    const fetchGastos = () => {
+  const gastosRef = database.ref('Empresas/Gastos');
+  
+  gastosRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    const gastos = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
+    
+    // Guardar datos en localStorage
+    localStorage.setItem('gastos', JSON.stringify(gastos));
+    
+    renderGastos(gastos);
+  }, (error) => {
+    console.error("Error fetching data from Firebase: ", error);
+
+    // Si hay un error (por ejemplo, falta de conexión), cargar datos desde localStorage
+    const cachedGastos = localStorage.getItem('gastos');
+    if (cachedGastos) {
+      renderGastos(JSON.parse(cachedGastos));
+    } else {
+      alert('No se pueden cargar los datos y no hay datos en caché.');
+    }
+  });
+};
+
+// Cargar datos desde localStorage al inicio en caso de no haber conexión
+const loadFromLocalStorage = () => {
+  const cachedGastos = localStorage.getItem('gastos');
+  if (cachedGastos) {
+    renderGastos(JSON.parse(cachedGastos));
+  }
+};
+
+// Verificar conexión a Internet y cargar datos en consecuencia
+if (navigator.onLine) {
+  fetchGastos();
+} else {
+  loadFromLocalStorage();
+}
+
+// Escuchar eventos de conexión y desconexión
+window.addEventListener('online', fetchGastos);
+window.addEventListener('offline', () => {
+  alert('Estás sin conexión. Mostrando datos almacenados.');
+  loadFromLocalStorage();
+});
+
+    const saveGasto = (gasto) => {
+      const gastosRef = database.ref('Empresas/Gastos');
+      gastosRef.push(gasto);
+    };
+
+    const deleteGasto = (id) => {
+      const gastoRef = database.ref(`Empresas/Gastos/${id}`);
+      gastoRef.remove();
+    };
+
+    gastosForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const formData = new FormData(gastosForm);
+      const newGasto = {};
+      formData.forEach((value, key) => {
+        newGasto[key] = value;
+      });
+      saveGasto(newGasto);
+      modal.classList.remove('show');
+      gastosForm.reset();
+    });
+
+    openModalButton.addEventListener('click', () => {
+      modal.classList.add('show');
+    });
+
+    closeModalButton.addEventListener('click', () => {
+      modal.classList.remove('show');
+    });
+
+    // Cargar gastos al iniciar
+    fetchGastos();
+  </script>
+    <script  src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.min.js"></script>
+    
+</body>
+</html>

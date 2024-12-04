@@ -1,18 +1,218 @@
 <!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>syspront</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <h1>¡Bienvenido a mi PWA cokjjhjn Workbox!</h1>
-    <p>Este es un ejemplo básico de cómo usar Workbox para hacer una app web offline.</p>
-    <img src="https://via.placeholder.com/300" alt="Imagen de prueba" />
-    <script src="app.js"></script> 
-  </body>
-</html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo</title> 
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./Dashboard.css">
+  <link rel="manifest" href="manifest.json">
 
+  <style>
+    .product-image {
+      width: 100%;
+      height: auto;
+    }
+    .products-row {
+      margin-bottom: 20px;
+    }
+    .product-cell {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <!-- Menú de navegación -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand" href="/index.html">Catálogo</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item active">
+            <a class="nav-link" href="/gastos.html">Gastos</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/clientes.html">Clientes</a>
+          </li>
+          
+        </ul>
+      </div>
+    </nav>
+    
+ 
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1>Catálogo</h1>
+     </div>
+
+    <div class="mb-3">
+
+     </div>
+
+    <div class="row" id="productContainer">
+      <!-- Los productos se cargarán dinámicamente -->
+    </div>
+  </div>
+
+  <!-- Firebase JS SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+ 
+  <script>
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwDrPiehFMHQ9yYKRcKkWor02EijUp5gI",
+      authDomain: "sisye-50760.firebaseapp.com",
+      databaseURL: "https://sisye-50760-default-rtdb.firebaseio.com",
+      projectId: "sisye-50760",
+      storageBucket: "sisye-50760.appspot.com",
+      messagingSenderId: "654720267764",
+      appId: "1:654720267764:web:4d9f302012a49dcc3bf5a1",
+      measurementId: "G-6RCT8Z9FTZ"
+    };
+  
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+  
+    // Elementos del DOM
+    const productContainer = document.getElementById("productContainer");
+    const shareButton = document.getElementById("shareButton");
+  
+    // Función para renderizar productos
+    const renderProducts = (products) => {
+      productContainer.innerHTML = ""; // Limpiar contenedor
+  
+    if (products) {
+   // Crear contenedor responsivo
+   const tableWrapper = document.createElement("div");
+    tableWrapper.className = "table-responsive";
+
+    // Crear tabla
+    const table = document.createElement("table");
+    table.className = "table table-striped table-bordered";
+
+    // Crear encabezado de tabla
+  // Crear encabezado de tabla
+  const thead = document.createElement("thead");
+  thead.innerHTML = `
+    <tr>
+      <th>Categoría</th>
+      <th>Descripción</th>
+      <th>Precio de venta</th>
+      <th>Precio de compra</th>
+      <th>cantidad</th>
+     </tr>
+  `;
+  table.appendChild(thead);
+
+  // Crear cuerpo de tabla
+  const tbody = document.createElement("tbody");
+
+  Object.entries(products).forEach(([id, product]) => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${product.categoria || 'Sin categoría'}</td>
+      <td>${product.descripcion || 'Sin descripción'}</td>
+      <td>$${product.precioVenta || '0.00'}</td> 
+      <td>$${product.precioCompra || '0.00'}</td> 
+
+            <td>$${product.stock || '0.00'}</td>
+
+ 
+    
+    `;
+
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+    tableWrapper.appendChild(table); // Agregar tabla al contenedor responsivo
+    productContainer.appendChild(tableWrapper); // Agregar contenedor a la página
+  } else {
+    productContainer.innerHTML = "<p>No hay productos disponibles.</p>";
+  }
+
+    };
+  
+    // Función para cargar productos
+    const loadProducts = () => {
+      const productsRef = database.ref("Empresas/Productos");
+  
+      // Verifica si estás online
+      if (navigator.onLine) {
+        productsRef.on("value", (snapshot) => {
+          const products = snapshot.val();
+  
+          // Almacena los productos en localStorage
+          localStorage.setItem('products', JSON.stringify(products));
+  
+          // Renderiza los productos
+          renderProducts(products);
+        }, (error) => {
+          console.error("Error al obtener productos de Firebase:", error);
+  
+          // Si hay un error, intenta cargar desde localStorage
+          const products = JSON.parse(localStorage.getItem('products'));
+  
+          if (products) {
+            renderProducts(products);
+          } else {
+            productContainer.innerHTML = "<p>No hay productos disponibles.</p>";
+          }
+        });
+      } else {
+        // Si estás offline, carga los productos desde localStorage
+        const products = JSON.parse(localStorage.getItem('products'));
+  
+        if (products) {
+          renderProducts(products);
+        } else {
+          productContainer.innerHTML = "<p>No hay productos disponibles.</p>";
+        }
+      }
+    };
+  
+    // Productos seleccionados
+    const selectedProducts = new Set();
+  
+    // Función para agregar producto al compartir
+    const addToShare = (productId) => {
+      selectedProducts.add(productId);
+      shareButton.disabled = false;
+    };
   
  
+  
+    // Escucha cambios en el estado de la red
+    window.addEventListener('online', loadProducts);
+    window.addEventListener('offline', () => {
+      alert('Estás offline. Los datos se cargarán desde el almacenamiento local.');
+      loadProducts();
+    });
+  
+    // Cargar productos al iniciar
+    loadProducts();
+  </script>
+   <!-- Bootstrap JS -->
+    
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.min.js"></script>
+
+ <script>
+   // Handle mobile menu open/close
+   const mobileMenu = document.getElementById('mobileMenu');
+   const closeMobileMenu = document.getElementById('closeMobileMenu');
+
+   closeMobileMenu.addEventListener('click', () => {
+     mobileMenu.classList.add('d-none');
+   });
+ </script> 
+  <script  src="app.js"></script>
+</body>
+</html>
